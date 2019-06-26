@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link href="src/css/bootstrap.css" rel="stylesheet">
+    <link href="src/css/font-awesome.css" rel="stylesheet">
+    <title>Video Converter</title>
+    <style>
+      .empty {
+        height:300px;
+        width:700px;
+        margin:auto;
+        margin-bottom:50px;
+        border-style:dashed;
+        border-width:3px;
+        border-radius:10px
+      }
+      .highlight {
+        background-color:#03b1c4;
+      }
+      .files{
+        box-shadow: 5px 5px 5px 5px #bfbfbf;
+        margin-bottom:20px;
+      }
+      .filecontainer{
+        border-bottom: 1px solid rgba(0, 0,0,0.1);
+      }
+      .removefile{
+        float: left;
+        margin:20px;
+        background:gray;
+        height:50px;
+        width:50px;
+        border-radius:100%;
+        font-size:15px;
+        color:white;
+        padding:20px;
+        line-height:10px
+      }
+      .wrongfile{
+        background:brown;
+      }
+      .show{
+        display: inline-block;
+      }
+      .hide{
+        display: none;
+      }
+      #btns{
+        margin-bottom: 100px
+      }
+      .button{
+        box-shadow: 5px 5px 5px 5px #bfbfbf;
+      }
+    </style>
+  </head>
+  <body>
+    <h1></h1>
+      <div class="container">
+        <div class="row empty" id="dropzone">  
+            <p style="font-size:25px;margin-top:120px;margin-left:150px" id="dragzoneText">Drag and drop some files here,<br> <span style="margin-left:70px">or click to select</span> </p>
+        </div>
+        <div class="col-lg-12" id="files"></div>
+        <div class="col-lg-12" id="btns-container">
+          <div class="row hide" id="btns">
+            <button class="btn btn-danger button" id="cancel">CANCEL</button>
+            <button class="btn btn-info pull-right button" id="convert" style="margin-left: 10px">Convert Video</button>
+            <button class="btn btn-info pull-right button" id="extract">Extract Audio</button>
+          </div>
+        </div>
+      </div>
+
+    <script>
+      // You can also require other files to run in this process
+      require('./renderer.js')
+      
+    </script>
+    <script src="src/js/jquery-2.1.4.min.js"></script>
+    <script src="src/js/bootstrap-3.1.1.min.js"></script>
+  </body>
+</html>
