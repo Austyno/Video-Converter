@@ -19,7 +19,7 @@ const cancel = document.getElementById('cancel');
 const convertButton = document.getElementById('convert');
 const extractButton = document.getElementById('extract');
 const videosToConvert = document.getElementById('files');
-const removeVideo = document.getElementById('removefile');
+const mergeVideos = document.getElementById('merge');
 
 
 // const logProgress = (progress, event) => {
@@ -78,7 +78,7 @@ dropzone.addEventListener('click', () => {
   dialog.showOpenDialog(
     {
       properties: ['multiSelections', 'openFile'],
-      filters: [{ name: 'Videos', extensions: ['mp4', 'avi', 'mpeg', 'mkv'] }],
+      filters: [{ name: 'videosToConvert', extensions: ['mp4', 'avi', 'mpeg', 'mkv'] }],
     },
     (files) => {
       fileMetadata(files);
@@ -126,6 +126,7 @@ convertButton.addEventListener('click', () => {
 
     ffmpeg(inPutPath)
       .output(outPutPath)
+      .on('error', (error) => { dialog.showErrorBox('Oops!', `An error ocurred ${error}`); })
       .on('end', () => {
         child.lastChild.innerHTML = '<div><button class="btn btn-info" id="folder" style="border-radius:5px">Open Folder</button></div>';
       })
@@ -152,9 +153,46 @@ extractButton.addEventListener('click', () => {
 });
 
 videosToConvert.addEventListener('click', (e) => {
-  e.target.parentElement.remove();
-  if (filesDisplay.innerHTML === '') {
-    filesDisplay.classList.remove('files');
-    buttons.classList.remove('show');
+  if (e.target.classList.contains('removefile')) {
+    e.target.parentElement.remove();
+    if (filesDisplay.innerHTML === '') {
+      filesDisplay.classList.remove('files');
+      buttons.classList.remove('show');
+    }
   }
+
+
+  // if (filesDisplay.innerHTML === '') {
+  //   filesDisplay.classList.remove('files');
+  //   buttons.classList.remove('show');
+  // }
+});
+
+// mergeVideos.addEventListener('click', () => {
+//   const { children } = videosToConvert;
+//   const childrenArray = [...children];
+
+//   const inputs = [];
+
+//   childrenArray.forEach((child) => {
+//     const video = child.attributes.name.nodeValue;
+//     const videoName = video.split('.')[0];
+//     const selectedFormat = child.lastChild.children[0].value;
+//     const outPutDir = child.attributes[1].nodeValue;
+//     const inPutPath = `${outPutDir}${video}`;
+//   });
+
+
+  // ffmpeg('/path/to/part1.avi')
+  //   .input('/path/to/part2.avi')
+  //   .input('/path/to/part2.avi')
+  //   .on('error', (err) => {
+  //     console.log('An error occurred: ' + err.message);
+  //   })
+  //   .on('end', () => {
+  //     console.log('Merging finished !');
+  //   })
+  //   .mergeToFile('/path/to/merged.avi', '/path/to/tempDir');
+
+  console.log(video);
 });
