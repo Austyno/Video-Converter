@@ -19,7 +19,8 @@ const cancel = document.getElementById('cancel');
 const convertButton = document.getElementById('convert');
 const extractButton = document.getElementById('extract');
 const videosToConvert = document.getElementById('files');
-const mp3folder = document.getElementById('mp3folder');
+const removeVideo = document.getElementById('removefile');
+
 
 // const logProgress = (progress, event) => {
 //   // progress is a floating point number from 0 to 1
@@ -38,21 +39,6 @@ function preventDefaults(e) {
   e.stopPropagation();
 }
 
-
-// function convertVideo(files) {
-//   _.each(files, (file) => {
-//     const inputPath = file.path ? file.path : file;
-//     const splitPath = inputPath.split('/');
-//     const videoName = splitPath[splitPath.length - 1].split('.')[0];
-//     const outPutDir = inputPath.split(videoName)[0];
-//     // const outPutStr = `${outPutDir}${videoName}.${selectedFormat}`;
-
-//     // ffmpeg(inputPath)
-//     //   .output(outPutStr)
-//     //   .on('end', () => console.log('finished'))
-//     //   .run();
-//   });
-// }
 
 function fileMetadata(files) {
   filesDisplay.classList.add('files');
@@ -161,6 +147,14 @@ extractButton.addEventListener('click', () => {
     extractAudio({
       input: inPutPath,
       output: outPutPath,
-    }).then(() => { child.lastChild.innerHTML = '<p style="background:green;height:30px;color:white;padding:8px">Congratulations!! Extraction Complete'; });
+    }).then(() => { child.lastChild.innerHTML = '<p style="background:#03b1c4;;height:30px;color:white;padding:5px;line-height:20px">Congratulations!! Extraction Complete</p>'; });
   });
+});
+
+videosToConvert.addEventListener('click', (e) => {
+  e.target.parentElement.remove();
+  if (filesDisplay.innerHTML === '') {
+    filesDisplay.classList.remove('files');
+    buttons.classList.remove('show');
+  }
 });
