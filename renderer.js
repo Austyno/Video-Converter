@@ -1,12 +1,15 @@
 // This file is required by the index.html file and will
 // be executed in the renderer process for that window.
 // All of the Node.js APIs are available in this process.
-const { remote, ipcRenderer } = require('electron');
+const { remote, ipcRenderer, shell } = require('electron');
 
 const { dialog } = remote;
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegOnProgress = require('ffmpeg-on-progress');
 const extractAudio = require('ffmpeg-extract-audio');
+const Dialogs = require('dialogs');
+
+const dialogs = Dialogs();
 
 const _ = require('underscore');
 
@@ -20,12 +23,6 @@ const convertButton = document.getElementById('convert');
 const extractButton = document.getElementById('extract');
 const videosToConvert = document.getElementById('files');
 const mergeVideos = document.getElementById('merge');
-
-
-// const logProgress = (progress, event) => {
-//   // progress is a floating point number from 0 to 1
-//   console.log('progress', `${(progress * 100).toFixed()}%`);
-// };
 
 function generateId() {
   const S4 = function () {
@@ -121,17 +118,16 @@ convertButton.addEventListener('click', () => {
     const inPutPath = `${outPutDir}${video}`;
     const outPutPath = `${outPutDir}${videoName}.${selectedFormat}`;
     const durationEstimate = child.attributes.name.ownerElement.innerText.split(video)[1];
-    const divWidth = child.attributes[2].ownerElement.clientWidth;
-    const container = child.attributes[2].ownerElement;
 
     ffmpeg(inPutPath)
       .output(outPutPath)
+      .on('progress', ffmpegOnProgress((progress, event) => { child.lastChild.innerHTML = `<span style="font-weight:bold;font-size:30px;color:green"> ${(progress * 100).toFixed()}% </span>`; }, durationEstimate))
       .on('error', (error) => { dialog.showErrorBox('Oops!', `An error ocurred ${error}`); })
       .on('end', () => {
-        child.lastChild.innerHTML = '<div><button class="btn btn-info" id="folder" style="border-radius:5px">Open Folder</button></div>';
+        child.lastChild.innerHTML = `<div><button class="btn btn-info folder" id="folder" data-outputpath="${outPutPath}" style="border-radius:5px">Open Folder</button></div>`;
       })
       .run();
-    // console.log();
+    // console.log(child.lastChild.innerHTML = 'yes');
   });
 });
 
@@ -161,26 +157,27 @@ videosToConvert.addEventListener('click', (e) => {
     }
   }
 
-
   // if (filesDisplay.innerHTML === '') {
   //   filesDisplay.classList.remove('files');
   //   buttons.classList.remove('show');
   // }
 });
 
-// mergeVideos.addEventListener('click', () => {
-//   const { children } = videosToConvert;
-//   const childrenArray = [...children];
+mergeVideos.addEventListener('click', () => {
+  const { children } = videosToConvert;
+  const inputs = [];
 
-//   const inputs = [];
+  dialogs.prompt('Enter Merged Video Name', 'test.mp4', (input) => {
+    console.log(input);
+  });
 
-//   childrenArray.forEach((child) => {
-//     const video = child.attributes.name.nodeValue;
-//     const videoName = video.split('.')[0];
-//     const selectedFormat = child.lastChild.children[0].value;
-//     const outPutDir = child.attributes[1].nodeValue;
-//     const inPutPath = `${outPutDir}${video}`;
-//   });
+  // _.each(children, (child) => {
+  //   const video = child.attributes.name.nodeValue;
+  //   const videoName = video.split('.')[0];
+  //   const selectedFormat = child.lastChild.children[0].value;
+  //   const outPutDir = child.attributes[1].nodeValue;
+  //   const inPutPath = `${outPutDir}${video}`;
+  //   const outPutPath = `${outPutDir}${videoName}.${selectedFormat}`;
 
 
   // ffmpeg('/path/to/part1.avi')
@@ -194,5 +191,21 @@ videosToConvert.addEventListener('click', (e) => {
   //   })
   //   .mergeToFile('/path/to/merged.avi', '/path/to/tempDir');
 
-  console.log(video);
+  // console.log(video);
+});
+// .on('progress', ffmpegOnProgress((progress) => {
+//   (progress * 100).toFixed()
+// }, durationEstimate))
+
+// const logProgress = (progress, event) => {
+//   // progress is a floating point number from 0 to 1
+//   console.log('progress', (progress * 100).toFixed())
+// }
+
+videosToConvert.addEventListener('click', (e) => {
+  const clicked = e.target;
+  if (clicked.classList.contains('folder')) {
+    const path = clicked.getAttribute('data-outPutPath');
+    shell.showItemInFolder(path);
+  }
 });

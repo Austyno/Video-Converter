@@ -1,5 +1,5 @@
 {
-  "name": "vidConvert",
+  "name": "video_Convert",
   "version": "1.0.0",
   "description": "An app to convert videos from various formats",
   "main": "main.js",
@@ -17,6 +17,7 @@
     "eslint-plugin-react": "^7.13.0"
   },
   "dependencies": {
+    "dialogs": "^2.0.1",
     "electron": "^4.0.7",
     "ffmpeg-extract-audio": "^1.0.2",
     "ffmpeg-on-progress": "^1.0.0",
