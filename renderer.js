@@ -140,11 +140,23 @@ extractButton.addEventListener('click', () => {
     const outPutDir = child.attributes[1].nodeValue;
     const inPutPath = `${outPutDir}${video}`;
     const outPutPath = `${outPutDir}${videoName}.mp3`;
+    const durationEstimate = child.attributes.name.ownerElement.innerText.split(video)[1];
 
-    extractAudio({
-      input: inPutPath,
-      output: outPutPath,
-    }).then(() => { child.lastChild.innerHTML = '<p style="background:#03b1c4;;height:30px;color:white;padding:5px;line-height:20px">Congratulations!! Extraction Complete</p>'; });
+    ffmpeg(inPutPath)
+      .audioChannels(0)
+      .format('mp3')
+      .on('progress', ffmpegOnProgress((progress, event) => { child.lastChild.innerHTML = `<span style="font-weight:bold;font-size:30px;color:green"> ${(progress * 100).toFixed()}% </span>`; }, durationEstimate))
+      .on('end', () => {
+        child.lastChild.innerHTML = `<div><button class="btn btn-info folder" id="folder" data-outputpath="${outPutPath}" style="border-radius:5px">Open Folder</button></div>`;
+      })
+      .on('error', (err) => { dialogs.alert(err, () => { console.log(err); }); })
+      .output(outPutPath)
+      .run();
+
+    //     extractAudio({
+    //       input: inPutPath,
+    //       output: outPutPath,
+    //     }).then(() => { child.lastChild.innerHTML = '<p style="background:#03b1c4;;height:30px;color:white;padding:5px;line-height:20px">Congratulations!! Extraction Complete</p>'; });
   });
 });
 
