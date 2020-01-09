@@ -19,9 +19,15 @@
   "dependencies": {
     "dialogs": "^2.0.1",
     "electron": "^4.0.7",
+    "electron-rebuild": "^1.8.5",
+    "ffmpeg-concat": "^1.0.13",
     "ffmpeg-extract-audio": "^1.0.2",
     "ffmpeg-on-progress": "^1.0.0",
     "fluent-ffmpeg": "^2.1.2",
-    "underscore": "^1.9.1"
+    "hh-mm-ss": "^1.2.0",
+    "sharp": "^0.22.1",
+    "tmp": "^0.1.0",
+    "underscore": "^1.9.1",
+    "video-stitch": "^1.6.0"
   }
 }

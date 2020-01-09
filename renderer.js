@@ -6,15 +6,14 @@ const { remote, ipcRenderer, shell } = require('electron');
 const { dialog } = remote;
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegOnProgress = require('ffmpeg-on-progress');
-const extractAudio = require('ffmpeg-extract-audio');
 const Dialogs = require('dialogs');
+const tmp = require('tmp');
+const concat = require('ffmpeg-concat');
 
 const dialogs = Dialogs();
-
 const _ = require('underscore');
 
 const dropzone = document.getElementById('dropzone');
-
 const filesDisplay = document.getElementById('files');
 const dragZoneText = document.getElementById('dragzoneText');
 const buttons = document.getElementById('btns');
@@ -23,6 +22,10 @@ const convertButton = document.getElementById('convert');
 const extractButton = document.getElementById('extract');
 const videosToConvert = document.getElementById('files');
 const mergeVideos = document.getElementById('merge');
+
+const tmpDir = tmp.dirSync({ prefix: 'tmpDir_' });
+// console.log("Dir: ", tmpDir.name);
+
 
 function generateId() {
   const S4 = function () {
@@ -46,7 +49,7 @@ function fileMetadata(files) {
       const filepath = file.path ? file.path : file;
       ffmpeg.ffprobe(filepath, (err, metadata) => {
         resolve(metadata);
-        // console.log(metadata);
+        console.log(metadata.streams[0].height, metadata.streams[0].width);
       });
     }),
   );
@@ -61,7 +64,7 @@ function fileMetadata(files) {
 
       filesDisplay.innerHTML += `<div class="row filecontainer" data-outputpath="${outputpath}" name="${name}"><div class="col-md-4 removefile">X</div><div class="col-md-4" style="float: left;margin:20px">${name} <br><span id="dur">${
         new Date(result.format.duration * 1000).toISOString().substr(11, 8)
-      }</span></div><div class="col-md-4" style="float:right;margin:20px"><select id="${generateId()}"><option>Select format</option><option value="avi">AVI</option><option value="mp4">MP4</option><option value="mpeg">MPEG</option></select></div></div>`;
+        }</span></div><div class="col-md-4" style="float:right;margin:20px"><select id="${generateId()}"><option value="mp4">MP4</option><option value="avi">AVI</option><option value="mpeg">MPEG</option><option value="mp3">MP3</option></select></div></div>`;
     });
   });
   // console.log(files);
@@ -79,7 +82,6 @@ dropzone.addEventListener('click', () => {
     },
     (files) => {
       fileMetadata(files);
-      // convertButton.addEventListener('click', convertVideo(files));
     },
   );
 });
@@ -108,7 +110,13 @@ dropzone.addEventListener('drop', (e) => {
 });
 
 convertButton.addEventListener('click', () => {
+  mergeVideos.classList.add('disabled');
+  extractButton.classList.add('disabled');
+  convertButton.classList.add('disabled');
+
+
   const { children } = videosToConvert;
+
 
   _.each(children, (child) => {
     const video = child.attributes.name.nodeValue;
@@ -122,16 +130,22 @@ convertButton.addEventListener('click', () => {
     ffmpeg(inPutPath)
       .output(outPutPath)
       .on('progress', ffmpegOnProgress((progress, event) => { child.lastChild.innerHTML = `<span style="font-weight:bold;font-size:30px;color:green"> ${(progress * 100).toFixed()}% </span>`; }, durationEstimate))
-      .on('error', (error) => { dialog.showErrorBox('Oops!', `An error ocurred ${error}`); })
+      .on('error', (error) => { dialog.showErrorBox('Oops!', `An error ocurred ${error.message}`); })
       .on('end', () => {
         child.lastChild.innerHTML = `<div><button class="btn btn-info folder" id="folder" data-outputpath="${outPutPath}" style="border-radius:5px">Open Folder</button></div>`;
+        mergeVideos.classList.remove('disabled');
+        extractButton.classList.remove('disabled');
+        convertButton.classList.remove('disabled');
       })
       .run();
-    // console.log(child.lastChild.innerHTML = 'yes');
   });
 });
 
 extractButton.addEventListener('click', () => {
+  convertButton.classList.add('disabled');
+  mergeVideos.classList.add('disabled');
+  convertButton.classList.add('disabled');
+
   const { children } = videosToConvert;
 
   _.each(children, (child) => {
@@ -148,15 +162,13 @@ extractButton.addEventListener('click', () => {
       .on('progress', ffmpegOnProgress((progress, event) => { child.lastChild.innerHTML = `<span style="font-weight:bold;font-size:30px;color:green"> ${(progress * 100).toFixed()}% </span>`; }, durationEstimate))
       .on('end', () => {
         child.lastChild.innerHTML = `<div><button class="btn btn-info folder" id="folder" data-outputpath="${outPutPath}" style="border-radius:5px">Open Folder</button></div>`;
+        convertButton.classList.remove('disabled');
+        mergeVideos.classList.remove('disabled');
+        convertButton.classList.remove('disabled');
       })
-      .on('error', (err) => { dialogs.alert(err, () => { console.log(err); }); })
+      .on('error', (error) => { dialog.showErrorBox('Oops!', `An error ocurred ${error.message}`); })
       .output(outPutPath)
       .run();
-
-    //     extractAudio({
-    //       input: inPutPath,
-    //       output: outPutPath,
-    //     }).then(() => { child.lastChild.innerHTML = '<p style="background:#03b1c4;;height:30px;color:white;padding:5px;line-height:20px">Congratulations!! Extraction Complete</p>'; });
   });
 });
 
@@ -166,53 +178,49 @@ videosToConvert.addEventListener('click', (e) => {
     if (filesDisplay.innerHTML === '') {
       filesDisplay.classList.remove('files');
       buttons.classList.remove('show');
+      ipcRenderer.send('cancel');
     }
   }
-
-  // if (filesDisplay.innerHTML === '') {
-  //   filesDisplay.classList.remove('files');
-  //   buttons.classList.remove('show');
-  // }
 });
 
 mergeVideos.addEventListener('click', () => {
-  const { children } = videosToConvert;
-  const inputs = [];
+  convertButton.classList.add('disabled');
+  mergeVideos.classList.add('disabled');
+  extractButton.classList.add('disabled');
 
-  dialogs.prompt('Enter Merged Video Name', 'test.mp4', (input) => {
-    console.log(input);
+  const { children } = videosToConvert;
+  const videos = [];
+  const output = [];
+
+
+  _.each(children, (child) => {
+    const video = child.attributes.name.nodeValue;
+    const name = child.attributes.name.nodeValue.split('.')[0];
+    const inputVideo = `${child.attributes[1].nodeValue}${child.attributes.name.nodeValue}`;
+    const finalOutPut = `${child.attributes[1].nodeValue}${name}-merged.mp4`;
+
+    // ffmpeg.ffprobe(inputVideo, (err, metadata) => {
+    //   console.log(metadata.streams[0].height);
+    // });
+
+
+    videos.push(`${inputVideo}`);
+    output.push(finalOutPut);
+
+    // console.log(child);
   });
 
-  // _.each(children, (child) => {
-  //   const video = child.attributes.name.nodeValue;
-  //   const videoName = video.split('.')[0];
-  //   const selectedFormat = child.lastChild.children[0].value;
-  //   const outPutDir = child.attributes[1].nodeValue;
-  //   const inPutPath = `${outPutDir}${video}`;
-  //   const outPutPath = `${outPutDir}${videoName}.${selectedFormat}`;
 
-
-  // ffmpeg('/path/to/part1.avi')
-  //   .input('/path/to/part2.avi')
-  //   .input('/path/to/part2.avi')
-  //   .on('error', (err) => {
-  //     console.log('An error occurred: ' + err.message);
-  //   })
-  //   .on('end', () => {
-  //     console.log('Merging finished !');
-  //   })
-  //   .mergeToFile('/path/to/merged.avi', '/path/to/tempDir');
-
-  // console.log(video);
+  concat({
+    output: `${children[0].attributes[1].nodeValue}${children[0].attributes.name.nodeValue.split('.')[0]}Merged.mp4`,
+    videos,
+    transition: {
+      name: 'circleOpen',
+      duration: 1000,
+    },
+  }).then(() => { console.log('concat finished'); })
+    .catch((error) => { console.log(error.message); });
 });
-// .on('progress', ffmpegOnProgress((progress) => {
-//   (progress * 100).toFixed()
-// }, durationEstimate))
-
-// const logProgress = (progress, event) => {
-//   // progress is a floating point number from 0 to 1
-//   console.log('progress', (progress * 100).toFixed())
-// }
 
 videosToConvert.addEventListener('click', (e) => {
   const clicked = e.target;
@@ -221,3 +229,4 @@ videosToConvert.addEventListener('click', (e) => {
     shell.showItemInFolder(path);
   }
 });
+// .on('progress', ffmpegOnProgress((progress, event) => { children[0].lastChild.innerHTML = `<span style="font-weight:bold;font-size:30px;color:green"> ${(progress * 100).toFixed()}% </span>`; }, children[0].attributes.name.ownerElement.innerText.split(children[0].attributes.name.nodeValue)[1]));
